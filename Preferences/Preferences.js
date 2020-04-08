@@ -13,6 +13,7 @@ import colors from '../assets/colors';
 import Toggle from '../views/Toggle';
 import LocationServices from '../Home/LocationServices';
 import {GetStoreData, SetStoreData} from '../utils/asyncStorage';
+import {BLE_SERVICE_ID, CHARACTERISTIC_ID} from '../utils/constants';
 
 class Preferences extends Component {
   constructor(props) {
@@ -32,14 +33,11 @@ class Preferences extends Component {
         data => console.log('log:' + data),
       );
     }
-    NativeModules.BLE.init_module(
-      '8cf0282e-d80f-4eb7-a197-e3e0f965848d', //service ID
-      'd945590b-5b09-4144-ace7-4063f95bd0bb', //characteristic ID
-      {
-        "DebugLog": "yes",
-        "FastDevScan": "no"
-      }
-    );
+
+    NativeModules.BLE.init_module(BLE_SERVICE_ID, CHARACTERISTIC_ID, {
+      "DebugLog": "yes",
+      "FastDevScan": "no"
+    });
 
     this.getSetting('ENABLE_LOCATION').then(data => {
       this.setState({
@@ -61,40 +59,35 @@ class Preferences extends Component {
   };
 
   updateSetting = (id, state) => {
+    const storageKey = {
+      notification: 'ENABLE_NOTIFICATION',
+      location: 'ENABLE_LOCATION',
+      ble: 'ENABLE_BLE',
+    };
+
     switch (id) {
       case 'notification':
         break;
       case 'location':
         if (state) {
-          SetStoreData('ENABLE_LOCATION', 'true');
-          this.setState({
-            location: true,
-          });
           LocationServices.start();
         } else {
-          SetStoreData('ENABLE_LOCATION', 'false');
-          this.setState({
-            location: false,
-          });
           LocationServices.stop();
         }
         break;
       case 'ble':
         if (state) {
-          SetStoreData('ENABLE_BLE', 'true');
-          this.setState({
-            ble: true,
-          });
           NativeModules.BLE.start_ble();
         } else {
-          SetStoreData('ENABLE_BLE', 'false');
-          this.setState({
-            ble: false,
-          });
           NativeModules.BLE.stop_ble();
         }
         break;
     }
+
+    SetStoreData(storageKey[id], state);
+    this.setState({
+      [id]: state,
+    });
   };
 
   render() {
@@ -109,6 +102,7 @@ class Preferences extends Component {
         </View>
         <View style={styles.settings}>
           <FlatList
+            scrollEnabled={'false'}
             data={[
               {
                 key: 'notification',
@@ -139,8 +133,6 @@ class Preferences extends Component {
                     <Toggle
                       handleToggle={selectedState => {
                         this.updateSetting(item.key, selectedState);
-                        console.log("blah");
-                        console.log(this.state[item.key]);
                       }}
                       value={this.state[item.key]}
                     />
@@ -150,16 +142,11 @@ class Preferences extends Component {
             }}
           />
         </View>
-        <View>
-          <TouchableOpacity
-            style={styles.next_button}
-            onPress={() => navigate('BottomNav')}
-          >
-            <Text style={styles.next_button_text}>
-              Next
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.next_button}
+          onPress={() => navigate('BottomNav')}>
+          <Text style={styles.next_button_text}>Next</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }
@@ -171,7 +158,7 @@ const styles = StyleSheet.create({
     paddingVertical: 30,
   },
   intro_text: {
-    color: colors.GRAY_50,
+    color: colors.secondary_body_copy,
   },
   settings: {
     marginHorizontal: 20,
@@ -185,13 +172,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   setting_title: {
-    fontSize: 16,
-    lineHeight: 23,
+    fontSize: 17,
+    lineHeight: 22,
+    letterSpacing: -0.408,
+    color: colors.body_copy,
+    paddingBottom: 5,
   },
   setting_description: {
-    fontSize: 14,
-    lineHeight: 18,
-    color: colors.GRAY_50,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: -0.24,
+    color: colors.secondary_body_copy,
   },
   setting_content: {
     flex: 0.85,
@@ -201,13 +192,17 @@ const styles = StyleSheet.create({
   },
   next_button: {
     marginHorizontal: 20,
-    marginVertical: 30,
-    borderRadius: 2,
-    backgroundColor: colors.PURPLE_50,
+    marginVertical: 40,
+    borderRadius: 8,
+    backgroundColor: colors.primary_theme,
     paddingVertical: 15,
     alignItems: 'center',
   },
   next_button_text: {
+    fontWeight: '500',
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: -0.24,
     color: 'white',
   },
 });
